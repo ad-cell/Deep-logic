@@ -1,0 +1,57 @@
+const axios = require('axios');
+const cheerio = require('cheerio');
+
+const getLatestStories = async () => {
+  try {
+    const response = await axios.get('https://time.com');
+    const $ = cheerio.load(response.data);
+
+    // Find the section containing the latest stories
+    const latestStoriesSection = $('.partial.ridge');
+
+    const stories = [];
+    if (latestStoriesSection.length) {
+      // Find all story elements within the section
+      const storyElements = latestStoriesSection.find('article');
+
+      // Extract the title and link for each story
+      storyElements.slice(0, 6).each((_, el) => {
+        const titleElement = $(el).find('h3');
+        const linkElement = $(el).find('a');
+
+        if (titleElement.length && linkElement.length) {
+          const title = titleElement.text().trim();
+          const link = linkElement.attr('href');
+
+          stories.push({
+            title,
+            link,
+          });
+        }
+      });
+    }
+
+    return stories;
+  } catch (error) {
+    console.error('Error fetching latest stories:', error);
+    return [];
+  }
+};
+
+const serveGetTimeStories = async () => {
+  const stories = await getLatestStories();
+  return stories;
+};
+
+// Example usage
+serveGetTimeStories()
+  .then((stories) => {
+    stories.forEach((story) => {
+      console.log(`Title: ${story.title}`);
+      console.log(`Link: ${story.link}`);
+      console.log();
+    });
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  });
